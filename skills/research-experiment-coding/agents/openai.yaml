@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Experiment Coding"
+  short_description: "Generate reproducible paper experiment code"
+  default_prompt: "Use $research-experiment-coding to implement this paper experiment in a clean, reproducible PyTorch paper-repo style with explicit train and evaluation entrypoints."

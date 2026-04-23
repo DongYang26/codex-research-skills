@@ -1,6 +1,6 @@
 # Codex Skills
 
-Personal Codex skills for research and paper-writing workflows.
+Codex skills for research and paper-writing workflows.
 
 ## Repository Layout
 

@@ -29,6 +29,7 @@ Treat the task as research code, not product code. Default to a classic open-sou
    - checkpoint policy
    - commit hash when practical
 6. Leave a direct command or script for the exact experiment.
+7. Before executing code, confirm the environment, inspect repository-local instructions, and decide whether the task needs GPU, data profiling, or debug-specific scratch artifacts.
 
 ## Default PyTorch Repository Shape
 
@@ -68,6 +69,19 @@ When writing `train.py` or other paper-critical entrypoints:
 
 Read [references/pytorch-training-loop.md](references/pytorch-training-loop.md) for the expected loop structure and logging behavior.
 
+## Execution Environment And GPU Rules
+
+Before running Python, tests, smoke checks, or training jobs:
+
+- Look for repository-local instructions such as `AGENT.md`, `README.md`, `environment.yml`, `requirements.txt`, or `pyproject.toml`.
+- Reuse the repository's existing environment strategy when it is already defined.
+- If the repository has no defined environment strategy and the task clearly needs one, create or document a project-specific environment before running repeated experiments.
+- If the repository uses GPUs, inspect available devices before launching work. Do not blindly assume `cuda:0`.
+- Prefer explicit GPU selection through environment variables rather than hidden framework defaults.
+- Do not silently fall back to CPU when the task is supposed to validate GPU execution.
+
+Read [references/environment-and-gpu.md](references/environment-and-gpu.md) for the environment selection order, GPU checks, and safe execution conventions.
+
 ## Tensor And Formula Comment Rules
 
 When writing `forward`, data processing, attention blocks, losses, or any dense tensor logic:
@@ -78,6 +92,17 @@ When writing `forward`, data processing, attention blocks, losses, or any dense 
 - Keep comments brief and mathematical; explain what the tensor means, not what Python syntax does.
 
 Read [references/tensor-comments.md](references/tensor-comments.md) for concrete examples.
+
+## Tensor Debugging Protocol
+
+When a failure involves tensor shape mismatch, dtype mismatch, broadcasting ambiguity, or device placement:
+
+- Do not guess with random `squeeze`, `unsqueeze`, `reshape`, or `transpose` edits just to make the code run.
+- Log the exact `.shape`, `.dtype`, and `.device` of the tensors involved in the failing operation.
+- Compare the logged tensors against the intended mathematical definition before changing the code.
+- State the reason for the mismatch explicitly, then make the smallest correction that restores the intended computation.
+
+Read [references/tensor-debugging.md](references/tensor-debugging.md) before editing tensor code after a runtime mismatch.
 
 ## Train And Evaluate Rules
 
@@ -90,6 +115,50 @@ When writing `train`, `train_one_epoch`, `validate`, or `evaluate`:
 - Log core metrics such as loss and accuracy to W&B or TensorBoard. If the repo has no established logger, default to TensorBoard.
 - Save checkpoints based on the best validation metric and make the monitored metric explicit.
 - Keep the training loop readable in one place unless there is real duplication pressure.
+
+## Data Profiling Before Dataset Code
+
+Before writing a non-trivial `Dataset`, collator, parser, or preprocessing pipeline:
+
+- Inspect real samples first instead of coding against assumptions.
+- Check schema, nullability, types, and representative ranges in the terminal.
+- For images, audio, or other media, inspect multiple samples for dimensions and modality-specific metadata.
+- Only write the final dataset pipeline after confirming the raw data format.
+
+Read [references/data-profiling.md](references/data-profiling.md) for the minimal inspection workflow and what to log.
+
+## Focused Repository Reading
+
+When entering a large repository:
+
+- Start with directory structure, not full-file reads.
+- Use targeted search to find the exact class, function, config, or script you need.
+- Read only the relevant regions around the located symbols unless a wider file pass is necessary.
+- Keep context narrow and deliberate; broad blind reads are a last resort.
+
+Read [references/context-navigation.md](references/context-navigation.md) for the default terminal-first navigation workflow.
+
+## Safe Experiment Checkpointing
+
+During multi-step implementation and debugging:
+
+- Prefer small, intentional checkpoints when a concrete sub-task is known to work.
+- Stage explicit file paths instead of blindly staging the full worktree.
+- Before high-risk refactors or experimental fixes, preserve a reversible state with a branch, stash, or patch when appropriate.
+- Never use destructive reset behavior as an automatic fallback.
+
+Read [references/safe-checkpointing.md](references/safe-checkpointing.md) for the non-destructive git safety protocol.
+
+## Ephemeral Artifact Hygiene
+
+When creating one-off scripts, smoke-test outputs, mock tensors, or temporary diagnostics:
+
+- Prefer a dedicated scratch location instead of scattering temporary files through the repo.
+- Promote reusable helpers into `scripts/` or another stable location; clean up only true throwaway artifacts.
+- Never delete canonical datasets, checkpoints, or final metrics without explicit user instruction.
+- Keep transient directories ignored when they should persist locally but stay out of version control.
+
+Read [references/artifact-hygiene.md](references/artifact-hygiene.md) for the cleanup policy and `.gitignore` guidance.
 
 ## Required Deliverables Per Experiment
 

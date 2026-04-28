@@ -1,6 +1,6 @@
 ---
 name: research-experiment-coding
-description: Use when implementing ML/AI paper experiment code, especially PyTorch training or evaluation pipelines, baselines, ablations, reproduction scripts, results exporters, or figure-generating utilities in a research repository.
+description: Use when implementing, debugging, running, or reproducing ML/AI paper experiments in a research repository, especially PyTorch training or evaluation pipelines, baselines, ablations, dataset pipelines, environment or GPU setup, tensor-shape debugging, results export, or experiment cleanup.
 ---
 
 # Research Experiment Coding

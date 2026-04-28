@@ -1,4 +1,4 @@
 interface:
-  display_name: "Research Experiment Coding"
-  short_description: "Implement and debug reproducible research experiments"
+  display_name: "ML Research Engineering"
+  short_description: "ML-engineer-grade coding for reproducible research repos"
   default_prompt: "Use $research-experiment-coding to implement, debug, or reproduce this paper experiment in a clean, reproducible PyTorch research-repo style with explicit train and evaluation entrypoints, disciplined environment handling, and auditable experiment artifacts."

@@ -7,31 +7,20 @@ description: Use when implementing, debugging, running, or reproducing ML/AI pap
 
 ## Overview
 
-Treat the task as research code, not product code. Default to a classic open-source paper repository style: explicit entrypoints, lightweight `nn.Module` definitions, direct module calls, saved run artifacts, and a training loop a reviewer can audit quickly.
+Treat the task as research code, not product code. Default to a classic open-source paper repository style: explicit entrypoints, lightweight `nn.Module` definitions, direct module calls, saved run artifacts, and training or evaluation paths a reviewer can audit quickly.
 
-## Quick Start
+Keep the main skill lean. Read only the referenced file that matches the current task.
 
-1. Classify the request as one of:
-   - new training pipeline
-   - eval-only pipeline
-   - baseline or ablation
-   - results export or plotting
-   - reproduction or cleanup for release
+## Fast Path
+
+1. Classify the task as one of: training pipeline, eval-only work, baseline or ablation, results export, reproduction, or cleanup.
 2. Default to PyTorch unless the user or repository clearly uses another framework.
 3. Keep the main path explicit:
-   - config -> data -> model -> loss -> loop -> metrics -> checkpoint -> reportable outputs
-4. Choose the smallest file layout that keeps `train`, `evaluate`, and `reproduce` obvious.
-5. Add reproducibility artifacts before abstraction:
-   - resolved config
-   - seed
-   - output directory
-   - metrics log
-   - checkpoint policy
-   - commit hash when practical
-6. Leave a direct command or script for the exact experiment.
-7. Before executing code, confirm the environment, inspect repository-local instructions, and decide whether the task needs GPU, data profiling, or debug-specific scratch artifacts.
+   - config -> data -> model -> loss -> loop -> metrics -> checkpoint -> reportable artifacts
+4. Leave one direct command or script for the exact experiment.
+5. Before running code, inspect repository-local instructions and decide whether the task needs environment setup, GPU selection, data profiling, or debug-only scratch artifacts.
 
-## Default PyTorch Repository Shape
+## Core Repository Defaults
 
 For a new PyTorch paper repo, prefer:
 
@@ -47,180 +36,109 @@ figures/
 ```
 
 - Use `train.py` and `evaluate.py` as the direct entrypoints.
-- Use `main.py` only as a thin wrapper if a single unified CLI is truly helpful.
-- Keep `models/` limited to lightweight `nn.Module` definitions and small architecture helpers.
-- Keep `datasets/` focused on dataset classes, transforms, collators, and dataloader builders.
-- Keep `utils/` as small focused modules such as `seed.py`, `metrics.py`, `checkpoint.py`, and `distributed.py`.
-- Keep `configs/` as the source of truth for hyperparameters and experiment variants.
+- Use `main.py` only as a thin wrapper when a unified CLI is clearly helpful.
+- Keep `models/`, `datasets/`, and `utils/` small and direct.
 - Keep module interaction direct; do not introduce dependency injection, registries, or factory layers for a small paper repo.
 
-Read [references/pytorch-layout.md](references/pytorch-layout.md) when deciding the file tree or package boundaries.
+Read [references/pytorch-layout.md](references/pytorch-layout.md) for the default file tree and [references/style-guide.md](references/style-guide.md) for overall paper-repo coding taste.
 
-## Entrypoint Rules
+## Entrypoints And Config
 
 When writing `train.py` or other paper-critical entrypoints:
 
-- Provide a complete `seed_everything(seed)` implementation that fixes `random`, `numpy`, `torch`, `torch.cuda`, and `torch.backends.cudnn.deterministic`.
+- Provide a complete `seed_everything(seed)` that fixes `random`, `numpy`, `torch`, `torch.cuda`, and `torch.backends.cudnn.deterministic`.
 - Set `torch.backends.cudnn.benchmark = False` unless the user explicitly accepts nondeterministic behavior.
-- Manage all tunable hyperparameters in one place through `argparse` or Hydra.
-- Give every CLI argument a clear `help` string that includes the default behavior.
-- Do not hardcode magic numbers for model width, depth, learning rate, batch size, epoch count, or similar paper-facing hyperparameters in the main code path.
+- Manage tunable hyperparameters through `argparse` or Hydra.
+- Give every CLI argument a clear `help` string that includes default behavior.
+- Do not hardcode paper-facing magic numbers for width, depth, learning rate, batch size, or epoch count in the main code path.
 - Write the resolved configuration into the run directory before the main loop starts.
 
-Read [references/pytorch-training-loop.md](references/pytorch-training-loop.md) for the expected loop structure and logging behavior.
+Read [references/pytorch-training-loop.md](references/pytorch-training-loop.md) for loop structure and logger expectations.
 
-## Execution Environment And GPU Rules
+## Execution Discipline
 
 Before running Python, tests, smoke checks, or training jobs:
 
-- Look for repository-local instructions such as `AGENT.md`, `README.md`, `environment.yml`, `requirements.txt`, or `pyproject.toml`.
-- Reuse the repository's existing environment strategy when it is already defined.
-- If the repository has no defined environment strategy and the task clearly needs one, create or document a project-specific environment before running repeated experiments.
-- If the repository uses GPUs, inspect available devices before launching work. Do not blindly assume `cuda:0`.
-- Prefer explicit GPU selection through environment variables rather than hidden framework defaults.
+- Check repository-local instructions such as `AGENT.md`, `README.md`, `environment.yml`, `requirements.txt`, or `pyproject.toml`.
+- Reuse the repository's existing environment strategy when it exists; otherwise create and document a project-specific environment only when the task clearly needs one.
+- Inspect available GPUs before launching GPU work. Do not blindly assume `cuda:0`.
+- Prefer explicit GPU selection through environment variables such as `CUDA_VISIBLE_DEVICES`.
 - Do not silently fall back to CPU when the task is supposed to validate GPU execution.
+- Inspect real data before writing a non-trivial `Dataset` or preprocessing pipeline.
+- Keep one-off diagnostics and smoke-test artifacts in a dedicated scratch location.
 
-Read [references/environment-and-gpu.md](references/environment-and-gpu.md) for the environment selection order, GPU checks, and safe execution conventions.
+Read [references/environment-and-gpu.md](references/environment-and-gpu.md), [references/data-profiling.md](references/data-profiling.md), and [references/artifact-hygiene.md](references/artifact-hygiene.md) when the task touches execution, data, or temporary artifacts.
 
-## Tensor And Formula Comment Rules
+## Tensor Discipline
 
-When writing `forward`, data processing, attention blocks, losses, or any dense tensor logic:
+When writing `forward`, data processing, losses, attention blocks, or other dense tensor logic:
 
-- Add inline shape comments for each shape-changing or broadcasting-sensitive tensor step.
-- In dense mathematical blocks, annotate every semantically meaningful tensor transform until the shape story is obvious.
-- If a function implements a paper formula, include a short docstring with LaTeX or plain-text math describing the formula or objective.
-- Keep comments brief and mathematical; explain what the tensor means, not what Python syntax does.
+- Add inline shape comments for shape-changing or broadcasting-sensitive steps.
+- Add a short formula docstring when a function implements a paper formula or objective.
+- Keep comments mathematical and brief.
 
-Read [references/tensor-comments.md](references/tensor-comments.md) for concrete examples.
+When a runtime failure involves shape, dtype, broadcasting, or device placement:
 
-## Tensor Debugging Protocol
+- Do not guess with random `squeeze`, `unsqueeze`, `reshape`, `transpose`, or similar edits.
+- Log the exact `.shape`, `.dtype`, and `.device` of the tensors involved.
+- Compare the logged tensors against the intended math, state the mismatch explicitly, then make the smallest correction.
 
-When a failure involves tensor shape mismatch, dtype mismatch, broadcasting ambiguity, or device placement:
+Read [references/tensor-comments.md](references/tensor-comments.md) and [references/tensor-debugging.md](references/tensor-debugging.md) before editing shape-sensitive code.
 
-- Do not guess with random `squeeze`, `unsqueeze`, `reshape`, or `transpose` edits just to make the code run.
-- Log the exact `.shape`, `.dtype`, and `.device` of the tensors involved in the failing operation.
-- Compare the logged tensors against the intended mathematical definition before changing the code.
-- State the reason for the mismatch explicitly, then make the smallest correction that restores the intended computation.
+## Training And Evaluation Loop
 
-Read [references/tensor-debugging.md](references/tensor-debugging.md) before editing tensor code after a runtime mismatch.
-
-## Train And Evaluate Rules
-
-When writing `train`, `train_one_epoch`, `validate`, or `evaluate`:
+When writing `train`, `validate`, or `evaluate`:
 
 - Wrap dataloaders with `tqdm`.
 - Use `model.train()` for training and `model.eval()` for validation or evaluation.
 - Use `with torch.no_grad():` in evaluation code.
-- Return metrics as a dictionary, not as ad hoc tuples or print-only side effects.
+- Return metrics as a dictionary, not ad hoc tuples or print-only side effects.
 - Log core metrics such as loss and accuracy to W&B or TensorBoard. If the repo has no established logger, default to TensorBoard.
-- Save checkpoints based on the best validation metric and make the monitored metric explicit.
-- Keep the training loop readable in one place unless there is real duplication pressure.
+- Save checkpoints based on an explicit best validation metric.
+- Keep the main training loop readable in one place unless there is real duplication pressure.
 
-## Data Profiling Before Dataset Code
+Read [references/pytorch-training-loop.md](references/pytorch-training-loop.md) for the full loop pattern.
 
-Before writing a non-trivial `Dataset`, collator, parser, or preprocessing pipeline:
+## Navigation And Safety
 
-- Inspect real samples first instead of coding against assumptions.
-- Check schema, nullability, types, and representative ranges in the terminal.
-- For images, audio, or other media, inspect multiple samples for dimensions and modality-specific metadata.
-- Only write the final dataset pipeline after confirming the raw data format.
-
-Read [references/data-profiling.md](references/data-profiling.md) for the minimal inspection workflow and what to log.
-
-## Focused Repository Reading
-
-When entering a large repository:
+When entering a large repository or making risky changes:
 
 - Start with directory structure, not full-file reads.
 - Use targeted search to find the exact class, function, config, or script you need.
-- Read only the relevant regions around the located symbols unless a wider file pass is necessary.
-- Keep context narrow and deliberate; broad blind reads are a last resort.
-
-Read [references/context-navigation.md](references/context-navigation.md) for the default terminal-first navigation workflow.
-
-## Safe Experiment Checkpointing
-
-During multi-step implementation and debugging:
-
-- Prefer small, intentional checkpoints when a concrete sub-task is known to work.
+- Read only the relevant regions unless a wider pass is clearly necessary.
+- Prefer small, intentional git checkpoints when a concrete sub-task is known to work.
 - Stage explicit file paths instead of blindly staging the full worktree.
-- Before high-risk refactors or experimental fixes, preserve a reversible state with a branch, stash, or patch when appropriate.
+- Preserve a reversible state before high-risk refactors or speculative fixes.
 - Never use destructive reset behavior as an automatic fallback.
 
-Read [references/safe-checkpointing.md](references/safe-checkpointing.md) for the non-destructive git safety protocol.
+Read [references/context-navigation.md](references/context-navigation.md) and [references/safe-checkpointing.md](references/safe-checkpointing.md) when navigating or debugging an existing repo.
 
-## Ephemeral Artifact Hygiene
+## Required Deliverables
 
-When creating one-off scripts, smoke-test outputs, mock tensors, or temporary diagnostics:
-
-- Prefer a dedicated scratch location instead of scattering temporary files through the repo.
-- Promote reusable helpers into `scripts/` or another stable location; clean up only true throwaway artifacts.
-- Never delete canonical datasets, checkpoints, or final metrics without explicit user instruction.
-- Keep transient directories ignored when they should persist locally but stay out of version control.
-
-Read [references/artifact-hygiene.md](references/artifact-hygiene.md) for the cleanup policy and `.gitignore` guidance.
-
-## Required Deliverables Per Experiment
-
-Every new paper-facing experiment should leave behind:
+Every paper-facing experiment should leave behind:
 
 - one runnable command
 - one stable output directory or naming scheme
-- one saved resolved config file
+- one saved resolved config
 - one recorded seed
 - one metrics file such as `jsonl`, `csv`, or `tsv`
 - checkpoint files or an explicit reason they are unnecessary
-- enough scripting to regenerate tables or figures from saved raw results
+- enough saved raw results and scripting to regenerate tables or figures
 
-Read [references/repro-checklist.md](references/repro-checklist.md) before claiming the work is reproducible.
-Use [assets/pytorch-paper-template/](assets/pytorch-paper-template) as the default scaffold for new repos or when the user asks to start from scratch.
+Read [references/repro-checklist.md](references/repro-checklist.md) before claiming the work is reproducible. Use [assets/pytorch-paper-template/](assets/pytorch-paper-template) when starting from scratch.
 
-## Task Guidance
+## Task Patterns
 
-### New Method
-
-- Add the method with the minimum new surface area.
-- Keep shared train and eval logic shared; isolate only the method-specific pieces.
-- Prefer config switches and small module additions over parallel codepaths.
-- Preserve the same entrypoint and logging conventions as the baseline code.
-
-### Baseline Or Ablation
-
-- Reuse the exact same data loading, evaluation, and logging path as the main method whenever possible.
-- Change one factor at a time.
-- Make the ablation visible in the run name, saved config, and results filename.
-- Do not fork the whole repository layout just to test one variation.
-
-### Eval-Only Work
-
-- Separate checkpoint loading, inference, and metric aggregation cleanly.
-- Save per-example outputs when they are needed for error analysis or paper tables.
-- Make metric computation auditable from persisted artifacts.
-- Keep evaluation callable both from `evaluate.py` and from the training loop for validation.
-
-### Results And Figures
-
-- Persist raw numeric outputs first.
-- Generate figures and tables from saved artifacts, not transient in-memory results.
-- Keep plotting code separate from model code.
+- New method: add the method with the minimum new surface area, keep shared train and eval logic shared, and prefer config switches over parallel codepaths.
+- Baseline or ablation: reuse the same data, evaluation, and logging path whenever possible; change one factor at a time.
+- Eval-only work: separate checkpoint loading, inference, and metric aggregation cleanly, and persist per-example outputs when they matter.
+- Results and figures: persist raw numeric outputs first and keep plotting code separate from model code.
 
 ## Anti-Patterns
 
-Do not drift into application-framework code unless the repository truly needs it.
-
-- Do not introduce `Controller`, `Manager`, `Service`, or `Repository` layers for a small experiment repo.
+- Do not drift into `Controller`, `Manager`, `Service`, or `Repository` layers for a small experiment repo.
 - Do not add registries, plugin systems, or factories before there are multiple real variants to support.
-- Do not hide paper-critical hyperparameters in globals or environment variables.
-- Do not bury model or dataloader construction behind dependency injection.
+- Do not hide paper-critical hyperparameters in globals or unrelated environment variables.
 - Do not put the only copy of training or evaluation logic in notebooks.
 - Do not funnel unrelated helpers into a giant `utils.py`; prefer a small `utils/` package with focused modules.
 - Do not save only final PNG or PDF outputs without the raw numbers behind them.
-- Do not leave shape-sensitive tensor code uncommented when a reader would have to infer the dimensions mentally.
-
-## Example Requests
-
-- "Implement the training and evaluation code for this new method from the paper draft."
-- "Add two ablations and make sure they reuse the same evaluation path."
-- "Clean this repo up so reviewers can reproduce Table 1 and Figure 3."
-- "Turn this notebook-only experiment into a proper train/eval/results pipeline."
-- "Scaffold a PyTorch paper repo with `train.py`, `evaluate.py`, `models/`, `datasets/`, `utils/`, and `configs/`."

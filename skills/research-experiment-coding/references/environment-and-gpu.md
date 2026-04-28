@@ -6,6 +6,8 @@ Use this guide before running Python, launching training, or validating CUDA beh
 
 Check for repository-local instructions before choosing how to execute code:
 
+- `CLAUDE.md`
+- `AGENTS.md`
 - `AGENT.md`
 - `README.md`
 - `environment.yml` or `conda.yaml`
@@ -13,7 +15,7 @@ Check for repository-local instructions before choosing how to execute code:
 - `pyproject.toml`
 - existing project scripts such as `scripts/train.sh`
 
-If `AGENT.md` exists, read it first and treat it as the repository-specific execution contract.
+If `CLAUDE.md`, `AGENTS.md`, or `AGENT.md` exists, read the repository-specific instruction file first and treat it as the local execution contract.
 
 ## Environment Selection Order
 
@@ -26,7 +28,7 @@ Use this order:
 When creating a new environment:
 
 - choose a project-specific name
-- document the name and activation instructions in `AGENT.md`
+- document the name and activation instructions in the repository instruction file, such as `CLAUDE.md`, `AGENTS.md`, or `AGENT.md`
 - prefer running future commands through `conda run -n <env_name> ...` for reproducibility
 
 Do not create multiple ad hoc environments for the same repository.
@@ -40,7 +42,7 @@ If you create or adopt a project-specific environment, record:
 - installation command
 - any execution-specific variables required by the repo
 
-Keep this in `AGENT.md` so future sessions can resume without rediscovery.
+Keep this in the repository instruction file so future sessions can resume without rediscovery.
 
 ## GPU Discovery
 

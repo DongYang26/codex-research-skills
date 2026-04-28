@@ -59,7 +59,7 @@ Read [references/pytorch-training-loop.md](references/pytorch-training-loop.md) 
 
 Before running Python, tests, smoke checks, or training jobs:
 
-- Check repository-local instructions such as `AGENT.md`, `README.md`, `environment.yml`, `requirements.txt`, or `pyproject.toml`.
+- Check repository-local instructions such as `CLAUDE.md`, `AGENTS.md`, `AGENT.md`, `README.md`, `environment.yml`, `requirements.txt`, or `pyproject.toml`.
 - Reuse the repository's existing environment strategy when it exists; otherwise create and document a project-specific environment only when the task clearly needs one.
 - Inspect available GPUs before launching GPU work. Do not blindly assume `cuda:0`.
 - Prefer explicit GPU selection through environment variables such as `CUDA_VISIBLE_DEVICES`.
